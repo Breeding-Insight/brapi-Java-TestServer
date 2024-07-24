@@ -112,11 +112,6 @@ public class GermplasmService {
 		Pageable pageReq = PagingUtility.getPageRequest(metadata);
 		SearchQueryBuilder<GermplasmEntity> searchQuery = new SearchQueryBuilder<GermplasmEntity>(
 				GermplasmEntity.class);
-		searchQuery.leftJoinFetch("synonyms", "synonyms")
-				.leftJoinFetch("breedingMethod", "breedingMethod")
-				.leftJoinFetch("crop", "crop")
-				.leftJoinFetch("pedigree", "pedigree")
-				.leftJoinFetch("*pedigree.crossingProject", "crossingProject");
 
 		if (request.getProgramDbIds() != null || request.getProgramNames() != null || request.getTrialDbIds() != null
 				|| request.getTrialNames() != null || request.getStudyDbIds() != null
@@ -150,25 +145,6 @@ public class GermplasmService {
 				.appendList(request.getFamilyCodes(), "familyCode");
 
 		Page<GermplasmEntity> page = germplasmRepository.findAllBySearch(searchQuery, pageReq);
-
-		if(!page.isEmpty()) {
-			log.debug("fetching xrefs");
-			fetchXrefs(page);
-			log.debug("fetching attributes");
-			fetchAttributes(page);
-			log.debug("fetching donors");
-			fetchDonors(page);
-			log.debug("fetching origins");
-			fetchOrigin(page);
-			log.debug("fetching institutes");
-			fetchInstitutes(page);
-			log.debug("fetching taxons");
-			fetchTaxons(page);
-			log.debug("fetching storage codes");
-			fetchStorageCodes(page);
-			log.debug("fetching pedigree edges");
-			fetchPedigreeEdges(page);
-		}
 
 		return page;
 	}
