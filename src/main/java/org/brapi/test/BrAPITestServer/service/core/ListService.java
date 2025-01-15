@@ -268,33 +268,29 @@ public class ListService {
 			entity.setListOwnerPerson(person);
 		}
 
-		if (list.getData() != null) {
-			// Clear existing items
-			if (entity.getData() == null) {
-				entity.setData(new ArrayList<>());
-			} else {
-				entity.getData().clear();
-			}
+		// Ensure entity's data is initialized
+		initializeEntityData(entity);
 
+		if (list.getData() != null) {
 			// Add new items
-			ListIterator<String> iter = list.getData().listIterator();
-			while (iter.hasNext()) {
-				String item = iter.next();
+			int position = 0;
+			for (String item : list.getData()) {
 				if (item != null) {
 					ListItemEntity itemEntity = new ListItemEntity();
-					itemEntity.setPosition(iter.nextIndex());
+					itemEntity.setPosition(position++);
 					itemEntity.setItem(item);
 					itemEntity.setList(entity);
 					entity.getData().add(itemEntity);
 				}
 			}
-		} else {
-			if (entity.getData() == null) {
-				entity.setData(new ArrayList<>());
-			} else {
-				entity.getData().clear();
-			}
 		}
+	}
 
+	private void initializeEntityData(ListEntity entity) {
+		if (entity.getData() == null) {
+			entity.setData(new ArrayList<>());
+		} else {
+			entity.getData().clear();
+		}
 	}
 }
