@@ -26,7 +26,11 @@ import org.brapi.test.BrAPITestServer.service.germ.PedigreeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -48,15 +52,20 @@ public class GermplasmApiController extends BrAPIController implements Germplasm
 	private final PedigreeService pedigreeService;
 	private final SearchService searchService;
 	private final HttpServletRequest request;
+	private final NamedParameterJdbcTemplate jdbcTemplate;
 
 	@Autowired
-	public GermplasmApiController(GermplasmService germplasmService, PedigreeService pedigreeService,
-			SearchService searchService, HttpServletRequest request) {
+	public GermplasmApiController(GermplasmService germplasmService,
+								  PedigreeService pedigreeService,
+								  SearchService searchService,
+								  HttpServletRequest request,
+								  NamedParameterJdbcTemplate jdbcTemplate) {
 		this.germplasmService = germplasmService;
 		this.pedigreeService = pedigreeService;
 		this.searchService = searchService;
 		this.request = request;
-	}
+        this.jdbcTemplate = jdbcTemplate;
+    }
 
 	@CrossOrigin
 	@Override
@@ -182,11 +191,47 @@ public class GermplasmApiController extends BrAPIController implements Germplasm
 		return responseOK(new GermplasmListResponse(), new GermplasmListResponseResult(), data);
 	}
 
+	private String[] toArrayOrNull(List<String> list) {
+		if (list == null || list.isEmpty())
+		{
+			return null;
+		}
+		return list.toArray(new String[list.size()]);
+	}
+
 	@CrossOrigin
 	@Override
 	public ResponseEntity<? extends BrAPIResponse> searchGermplasmPost(@RequestBody GermplasmSearchRequest body,
 			@RequestHeader(value = "Authorization", required = false) String authorization)
 			throws BrAPIServerException {
+
+		// Prepare parameters.
+		SqlParameterSource namedParameters = new MapSqlParameterSource()
+				.addValue("accessionNumbers", toArrayOrNull(body.getAccessionNumbers()))
+				.addValue("binomialNames", toArrayOrNull(body.getBinomialNames()))
+				.addValue("collections", toArrayOrNull(body.getCollections()))
+				.addValue("commonCropNames", toArrayOrNull(body.getCommonCropNames()))
+				.addValue("externalReferenceIds", toArrayOrNull(body.getExternalReferenceIDs()))
+				.addValue("externalReferenceSources", toArrayOrNull(body.getExternalReferenceSources()))
+				.addValue("familyCodes", toArrayOrNull(body.getFamilyCodes()))
+				.addValue("genus_list", toArrayOrNull(body.getGenus()))
+				.addValue("germplasmDbIds", toArrayOrNull(body.getGermplasmDbIds()))
+				.addValue("germplasmNames", toArrayOrNull(body.getGermplasmNames()))
+				.addValue("germplasmPUIs", toArrayOrNull(body.getGermplasmPUIs()))
+				.addValue("instituteCodes", toArrayOrNull(body.getInstituteCodes()))
+				.addValue("parentDbIds", toArrayOrNull(body.getParentDbIds()))
+				.addValue("progenyDbIds", toArrayOrNull(body.getProgenyDbIds()))
+				.addValue("programDbIds", toArrayOrNull(body.getProgramDbIds()))
+				.addValue("programNames", toArrayOrNull(body.getProgramNames()))
+				.addValue("species_list", toArrayOrNull(body.getSpecies()))
+				.addValue("studyDbIds", toArrayOrNull(body.getStudyDbIds()))
+				.addValue("studyNames", toArrayOrNull(body.getStudyNames()))
+				.addValue("synonyms", toArrayOrNull(body.getSynonyms()))
+				.addValue("trialDbIds", toArrayOrNull(body.getTrialDbIds()))
+				.addValue("trialNames", toArrayOrNull(body.getTrialNames()));
+
+		String sql = "SELECT * FROM search_germplasm(:accessionNumbers, :binomialNames, :collections, :commonCropNames, :externalReferenceIds, :externalReferenceSources, :familyCodes, :genus_list, :germplasmDbIds, :germplasmNames, :germplasmPUIs, :instituteCodes, :parentDbIds, :progenyDbIds, :programDbIds, :programNames, :species_list, :studyDbIds, :studyNames, :synonyms, :trialDbIds, :trialNames);";
+		String result = jdbcTemplate.queryForObject(sql, namedParameters, String.class);
 
 		log.debug("Request: " + request.getRequestURI());
 		validateSecurityContext(request, "ROLE_ANONYMOUS", "ROLE_USER");
@@ -197,8 +242,8 @@ public class GermplasmApiController extends BrAPIController implements Germplasm
 		if (searchReqDbId != null) {
 			return responseAccepted(searchReqDbId);
 		} else {
-			List<Germplasm> data = germplasmService.findGermplasm(body, metadata);
-			return responseOK(new GermplasmListResponse(), new GermplasmListResponseResult(), data, metadata);
+			//germplasmService.findGermplasm(body, metadata);
+			return new ResponseEntity(result, HttpStatus.OK);
 		}
 	}
 
